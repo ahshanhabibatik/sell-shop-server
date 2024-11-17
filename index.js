@@ -29,6 +29,7 @@ async function run() {
 
         const userCollection = client.db("sellDB").collection("users");
         const productCollection = client.db("sellDB").collection("userProduct");
+        const cartCollection = client.db("sellDB").collection("carts");
 
 
         // jwt related api
@@ -119,13 +120,13 @@ async function run() {
         })
 
 
-        app.post('/userProduct', verifyToken, async (req, res) => {
+        app.post('/userProduct', async (req, res) => {
             const userProduct = req.body;
             const result = await productCollection.insertOne(userProduct);
             res.send(result);
         })
 
-        app.get('/userProduct',  async (req, res) => {
+        app.get('/userProduct', async (req, res) => {
             const result = await productCollection.find().toArray();
             res.send(result);
         })
@@ -139,14 +140,14 @@ async function run() {
             res.send(result);
         })
 
-        app.delete('/userSelfProduct/:id',  async (req, res) => {
+        app.delete('/userSelfProduct/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await productCollection.deleteOne(query);
             res.send(result);
         })
 
-        app.put('/userSelfProduct/:id',  async (req, res) => {
+        app.put('/userSelfProduct/:id', async (req, res) => {
             const id = req.params.id;
             const updatedData = req.body;
 
@@ -167,12 +168,36 @@ async function run() {
         });
 
 
-        app.get('/userProduct/:id',  async (req, res) => {
+        app.get('/userProduct/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await productCollection.findOne(query);
             res.send(result)
 
+        })
+
+        // cart collection
+
+        app.post('/carts', async (req, res) => {
+
+            const cartItem = req.body;
+            const result = await cartCollection.insertOne(cartItem);
+            res.send(result);
+
+        })
+
+        app.get('/carts', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const result = await cartCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.delete('/carts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await cartCollection.deleteOne(query);
+            res.send(result);
         })
 
 
