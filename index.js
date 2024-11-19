@@ -179,19 +179,40 @@ async function run() {
         // cart collection
 
         app.post('/carts', async (req, res) => {
-
             const cartItem = req.body;
-            const result = await cartCollection.insertOne(cartItem);
-            res.send(result);
+            const query = { productId: cartItem.productId, userEmail: cartItem.userEmail };
+            const existingCartItem = await cartCollection.findOne(query);
 
+            if (existingCartItem) {
+                return res.status(400).send({ message: 'This product is already in your cart!' });
+            }
+
+            const result = await cartCollection.insertOne(cartItem);
+            res.status(201).send(result);
+        });
+
+        app.get('/cartsProduct', async (req, res) => {
+            const result = await cartCollection.find().toArray();
+            res.send(result);
         })
 
         app.get('/carts', async (req, res) => {
             const email = req.query.email;
-            const query = { email: email };
-            const result = await cartCollection.find(query).toArray();
-            res.send(result);
-        })
+            if (!email) {
+                return res.status(400).send({ message: 'Email query parameter is required' });
+            }
+
+            try {
+                const query = { userEmail: email }; 
+                const result = await cartCollection.find(query).toArray();
+
+                res.status(200).send(result);
+            } catch (error) {
+                console.error("Error fetching cart data:", error);
+                res.status(500).send({ message: 'Internal server error' });
+            }
+        });
+
 
         app.delete('/carts/:id', async (req, res) => {
             const id = req.params.id;
