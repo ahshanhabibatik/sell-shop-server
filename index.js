@@ -4,6 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const port = process.env.PORT || 5000;
+const SSLCommerzPayment = require('sslcommerz-lts')
 
 // middleware
 app.use(cors());
@@ -11,6 +12,7 @@ app.use(express.json());
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.tqyfr7x.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -30,6 +32,8 @@ async function run() {
         const userCollection = client.db("sellDB").collection("users");
         const productCollection = client.db("sellDB").collection("userProduct");
         const cartCollection = client.db("sellDB").collection("carts");
+        const purchasesCollection = client.db("sellDB").collection("purchases");
+
 
 
         // jwt related api
@@ -41,7 +45,6 @@ async function run() {
 
         // middlewares 
         const verifyToken = (req, res, next) => {
-            // console.log('inside verify token', req.headers.authorization);
             if (!req.headers.authorization) {
                 return res.status(401).send({ message: 'unauthorized access' });
             }
@@ -131,6 +134,14 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/userProduct/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await productCollection.findOne(query);
+            res.send(result)
+
+        })
+
         app.get('/userSelfProduct', async (req, res) => {
             let query = {};
             if (req.query?.email) {
@@ -203,7 +214,7 @@ async function run() {
             }
 
             try {
-                const query = { userEmail: email }; 
+                const query = { userEmail: email };
                 const result = await cartCollection.find(query).toArray();
 
                 res.status(200).send(result);
@@ -220,6 +231,58 @@ async function run() {
             const result = await cartCollection.deleteOne(query);
             res.send(result);
         })
+
+        // order now
+
+        app.get('/OrderNow/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await cartCollection.findOne(query);
+            res.send(result)
+
+        })
+
+        // purchases
+
+        app.post('/purchases', async (req, res) => {
+            const purchasesProduct = req.body;
+            const result = await purchasesCollection.insertOne(purchasesProduct);
+            res.send(result);
+        })
+
+        app.get('/purchases', async (req, res) => {
+            const email = req.query.email;
+            if (!email) {
+                return res.status(400).send({ message: 'Email query parameter is required' });
+            }
+
+            try {
+                const query = { "contactInfo.email": email };
+                const result = await purchasesCollection.find(query).toArray();
+
+                console.log("Query:", query);
+                console.log("Result:", result);
+                res.status(200).send(result);
+            } catch (error) {
+                console.error("Error fetching purchases data:", error);
+                res.status(500).send({ message: 'Internal server error' });
+            }
+        });
+
+        app.get('/purchasesQuentity', async (req, res) => {
+            const result = await purchasesCollection.find().toArray();
+            res.send(result);
+        })
+
+
+
+        // payment
+
+        const store_id = process.env.STORE_ID
+        const store_passwd = process.env.STORE_PASS
+        const is_live = false
+
+
 
 
         await client.db("admin").command({ ping: 1 });
